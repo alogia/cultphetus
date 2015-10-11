@@ -1,0 +1,31 @@
+#!/usr/bin/ruby
+
+require 'bluecloth'
+require 'sqlite3'
+
+DBNAME='cultphetus.db'
+
+
+table = ARGV[0]
+path =  ARGV[1]
+throw 'Usage: publish TABLE FILE' if table.nil?
+throw 'Usage: publish TABLE FILE' if path.nil?
+throw 'Error: Cannot find file ' + path if !File.exists? path 
+
+file = File.open(path, 'r')
+title = file.readline
+post = file.read
+
+html = BlueCloth.new(post).to_html
+
+begin 
+    db = SQLite3::Database.open(DBNAME)
+    stmt = db.prepare "INSERT INTO #{table}(title, post) VALUES(?,?)"
+    stmt.execute(title, html)
+    stmt.close
+rescue SQLite3::Exception => e
+    puts 'Cannot open database: '
+    puts e
+ensure
+    db.close if db
+end
